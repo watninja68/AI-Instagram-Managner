@@ -1,11 +1,9 @@
 fastapi
+sse-starlette==0.3.2
 uvicorn
-gunicorn
 psutil
 python-dotenv
 requests
 nltk
-celery
-redis
-sse-starlette
-aiohttp
+celery[redis]
+redis          

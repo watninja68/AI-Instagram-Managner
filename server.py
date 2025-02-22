@@ -26,7 +26,8 @@ import random
 nltk.download('vader_lexicon')
 
 load_dotenv()
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 # Configure logging
 
 # Initialize FastAPI app
@@ -501,7 +502,7 @@ async def events(request: Request):
 
 
 # Serve static HTML
-app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 

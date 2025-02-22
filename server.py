@@ -501,7 +501,8 @@ async def events(request: Request):
 
 
 # Serve static HTML
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+
 
 
 if __name__ == "__main__":

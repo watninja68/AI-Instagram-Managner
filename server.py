@@ -71,7 +71,7 @@ WEBHOOK_FILE = "webhook_events.json"
 
 # --- Celery Setup ---
 CELERY_BROKER_URL =  "rediss://red-cul4k23tq21c73bo2skg:nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379"  # Use environment variable
-CELERY_RESULT_BACKEND =" rediss://red-cul4k23tq21c73bo2skg:nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379"  # and sensible defaults
+CELERY_RESULT_BACKEND ="rediss://red-cul4k23tq21c73bo2skg:nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379"  # and sensible defaults
 
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(

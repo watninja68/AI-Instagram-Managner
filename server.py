@@ -69,9 +69,17 @@ default_comment_response_negative = "We are sorry to hear you're not satisfied. 
 WEBHOOK_FILE = "/tmp/webhook_events.json"
 
 
-# --- Celery Setup ---
-CELERY_BROKER_URL =  "rediss://red-cul4k23tq21c73bo2skg:nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379"
-CELERY_RESULT_BACKEND ="rediss://red-cul4k23tq21c73bo2skg:nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379"
+CELERY_BROKER_URL = (
+    "rediss://red-cul4k23tq21c73bo2skg:"
+    "nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379/0"
+    "?ssl_cert_reqs=CERT_NONE"
+)
+CELERY_RESULT_BACKEND = (
+    "rediss://red-cul4k23tq21c73bo2skg:"
+    "nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379/0"
+    "?ssl_cert_reqs=CERT_NONE"
+)
+
 
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(

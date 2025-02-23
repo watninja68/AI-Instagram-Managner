@@ -53,7 +53,7 @@ WEBHOOK_EVENTS = deque(maxlen=100)
 CLIENTS: List[asyncio.Queue] = []
 
 # Webhook Credentials
-APP_SECRET = os.getenv("APP_SECRET", "e18fff02092b87e138b6528ccfa4a1ce")
+APP_SECRET = os.getenv("APP_SECRET", "d928c83e7f4c38a67017f44887b55668")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "fitvideodemo")
 access_token = "IGAAI8SJHk0mNBZAFB6TF9zejQtcnoyWWlOaGRSaEJyRGlfTXVUMEdveGJiVURXRXNlOUUwZA0QwQ2w4ZAi1HVE5mM2tqdk1jYW94VHVQbHdnWUx1NVduTHg1QzRMY1BzMVdqaEpId3B3X0JxNzM4dWJmWGtsWnZAKb1p4SnNiRzFMZAwZDZD"  # Replace with your actual token
 account_id = "17841472117168408"  # Replace

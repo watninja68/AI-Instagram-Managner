@@ -68,7 +68,7 @@ default_comment_response_negative = "We are sorry to hear you're not satisfied. 
 # Save Webhook Events to JSON File
 WEBHOOK_FILE = "webhook_events.json"
 
-
+#test
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")  # Use environment variable
 CELERY_RESULT_BACKEND = os.getenv("CELERY_BROKER_URL")
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)

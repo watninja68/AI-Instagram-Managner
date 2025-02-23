@@ -1,14 +1,5 @@
 #!/bin/bash
 set -e
-
-# Ensure webhook_events.json exists in the HOME directory and is writable
-if [ ! -f "$HOME/webhook_events.json" ]; then
-    touch "$HOME/webhook_events.json"
-fi
-
-chmod 666 "$HOME/webhook_events.json"
-ln -sf "$HOME/webhook_events.json" webhook_events.json
-
 # Install required Python packages
 pip install -r requirements.txt
 

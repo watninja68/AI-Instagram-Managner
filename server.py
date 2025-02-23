@@ -26,14 +26,14 @@ import random
 nltk.download('vader_lexicon')
 
 load_dotenv()
-BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 # Configure logging
 
 # Initialize FastAPI app
 app = FastAPI(title="Meta Webhook Server")
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 app.add_middleware(
     CORSMiddleware,
@@ -74,7 +74,7 @@ CELERY_RESULT_BACKEND = 'cache+memory://'
 # -------------------------------------------------
 
 
-celery = Celery(_name_, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
+celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(
     task_serializer='json',
     accept_content=['json'],

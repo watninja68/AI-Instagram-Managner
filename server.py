@@ -374,7 +374,7 @@ async def verify_webhook(
 
     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
         logger.info("Webhook verification successful")
-        return Response(content=hub_challenge, media_type="text/plain")
+        return Response(content=hub_challenge, media_type="text/html")
 
     logger.error("Webhook verification failed")
     raise HTTPException(status_code=403, detail="Verification failed")

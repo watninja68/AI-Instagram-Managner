@@ -71,8 +71,8 @@ WEBHOOK_FILE = "webhook_events.json"
 # CELERY_BROKER_URL = "rediss://:qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
 # CELERY_RESULT_BACKEND = "rediss://:qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
 
-CELERY_BROKER_URL = "rediss://testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
-CELERY_RESULT_BACKEND = "rediss://testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
+CELERY_BROKER_URL = "rediss://qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
+CELERY_RESULT_BACKEND = "rediss://qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
 
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(

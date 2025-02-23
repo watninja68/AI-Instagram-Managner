@@ -22,9 +22,6 @@ import nltk
 from celery import Celery
 import random
 
-# Download required data (only once)
-nltk.download('vader_lexicon')
-
 load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -32,8 +29,27 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 # Initialize FastAPI app
 app = FastAPI(title="Meta Webhook Server")
+
+# Standard logging configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Create an in-memory log storage for webhook-related logs
+WEBHOOK_LOGS = deque(maxlen=1000)
+
+class InMemoryWebhookLogHandler(logging.Handler):
+    """Custom logging handler that stores log messages in memory."""
+    def emit(self, record):
+        try:
+            log_entry = self.format(record)
+            WEBHOOK_LOGS.append(log_entry)
+        except Exception:
+            self.handleError(record)
+
+# Add the custom handler to our logger
+in_memory_handler = InMemoryWebhookLogHandler()
+in_memory_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(in_memory_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,7 +60,6 @@ app.add_middleware(
 )
 
 START_TIME = time.time()
-
 
 # Store webhook events - using deque with max size to prevent memory issues
 WEBHOOK_EVENTS = deque(maxlen=100)
@@ -73,7 +88,6 @@ CELERY_BROKER_URL = 'memory://'
 CELERY_RESULT_BACKEND = 'cache+memory://'
 # -------------------------------------------------
 
-
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(
     task_serializer='json',
@@ -88,25 +102,25 @@ conversation_task_schedules = {}  # Track scheduled task IDs per conversation
 
 
 @celery.task(name="send_dm")
-def send_dm(conversation_id_to_process, message_queue_snapshot):  # Pass conversation_id and snapshot
+def send_dm(conversation_id_to_process, message_queue_snapshot):
     """Celery task to process and respond to a conversation's messages."""
     try:
         if conversation_id_to_process not in message_queue_snapshot or not message_queue_snapshot[conversation_id_to_process]:
-            logger.info(f"No messages to process for conversation: {conversation_id_to_process}. Task exiting.")
+            logger.info(f"WebHook Endpoint: No messages to process for conversation: {conversation_id_to_process}. Task exiting.")
             return {"status": "no_messages_to_process", "conversation_id": conversation_id_to_process}
 
-        messages = message_queue_snapshot[conversation_id_to_process]  # Use the snapshot
+        messages = message_queue_snapshot[conversation_id_to_process]
         recipient_id = messages[0]["sender_id"]
         combined_text = "\n".join([msg["text"] for msg in messages])
 
-        sentiment = analyze_sentiment(combined_text) # Analyze sentiment BEFORE LLM call
-        logger.info(f"Sentiment Analysis Result: Sentiment: {sentiment}, Combined Text: '{combined_text}'")
+        sentiment = analyze_sentiment(combined_text)
+        logger.info(f"WebHook Endpoint: Sentiment Analysis Result: Sentiment: {sentiment}, Combined Text: '{combined_text}'")
 
         if sentiment == "Positive":
             llm_prompt_suffix = "Respond with a very enthusiastic and thankful tone, acknowledging the compliment. Keep it concise and friendly."
         elif sentiment == "Negative":
             llm_prompt_suffix = "Respond with an apologetic and helpful tone, asking for more details about the issue so we can improve. Keep it concise and professional."
-        else: # Neutral or mixed sentiment
+        else:
             llm_prompt_suffix = "Respond in a helpful and neutral tone. Keep it concise and informative."
 
         system_prompt_content = ""
@@ -114,39 +128,34 @@ def send_dm(conversation_id_to_process, message_queue_snapshot):  # Pass convers
             system_prompt_content = file.read().strip()
         full_prompt = system_prompt_content + " Message/Conversation input from user: " + combined_text + " "
 
-
-        # Generate response using LLM
         try:
             response_text = llm_response(gemini_api_key, model_name, full_prompt)
         except Exception as e:
-            logger.error(f"Error generating LLM response: {e}")
+            logger.error(f"WebHook Endpoint: Error generating LLM response: {e}")
             if sentiment == "Positive":
                 response_text = default_dm_response_positive
             else:
                 response_text = default_dm_response_negative
 
-        # Send the combined response
         try:
             result = postmsg(access_token, recipient_id, response_text)
-            logger.info(f"Sent combined response to {recipient_id}. Result: {result}")
+            logger.info(f"WebHook Endpoint: Sent combined response to {recipient_id}. Result: {result}")
         except Exception as e:
-            logger.error(f"Error sending message to {recipient_id}: {e}")
+            logger.error(f"WebHook Endpoint: Error sending message to {recipient_id}: {e}")
 
-        # Clear ONLY for the processed conversation ID (after processing is successful)
-        if conversation_id_to_process in message_queue:  # Double check before deleting (race condition safety)
+        if conversation_id_to_process in message_queue:
             del message_queue[conversation_id_to_process]
-            logger.info(f"Cleared message queue for conversation: {conversation_id_to_process}")
+            logger.info(f"WebHook Endpoint: Cleared message queue for conversation: {conversation_id_to_process}")
         else:
-            logger.warning(f"Conversation ID {conversation_id_to_process} not found in message_queue during clear. Possible race condition.")
+            logger.warning(f"WebHook Endpoint: Conversation ID {conversation_id_to_process} not found in message_queue during clear.")
 
-        # Clear task schedule after successful processing
         if conversation_id_to_process in conversation_task_schedules:
             del conversation_task_schedules[conversation_id_to_process]
 
         return {"status": "success", "processed_conversation": conversation_id_to_process, "message_count": len(messages)}
 
     except Exception as e:
-        logger.error(f"Error in send_dm task for conversation {conversation_id_to_process}: {e}")
+        logger.error(f"WebHook Endpoint: Error in send_dm task for conversation {conversation_id_to_process}: {e}")
         raise
 
 
@@ -155,11 +164,11 @@ def send_delayed_reply(access_token, comment_id, message_to_be_sent):
     """Sends a delayed reply to a comment."""
     try:
         result = sendreply(access_token, comment_id, message_to_be_sent)
-        logger.info(f"Reply sent to comment {comment_id}. Result: {result}")
+        logger.info(f"WebHook Endpoint: Reply sent to comment {comment_id}. Result: {result}")
         return result
     except Exception as e:
-        logger.error(f"Error sending reply to comment {comment_id}: {e}")
-        raise  # Important: Re-raise for Celery retry handling.
+        logger.error(f"WebHook Endpoint: Error sending reply to comment {comment_id}: {e}")
+        raise
 
 
 def save_events_to_file():
@@ -176,14 +185,14 @@ def load_events_from_file():
                 events = json.load(f)
                 WEBHOOK_EVENTS.extend(events)
         except Exception as e:
-            logger.error(f"Failed to load events from file: {e}")
+            logger.error(f"WebHook Endpoint: Failed to load events from file: {e}")
 
 
 def llm_response(api_key, model_name, query):
     """Generates response using Google Gemini API."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
-    payload = {"contents": [{"parts": [{"text": query}]}]} # Use the full prompt directly
+    payload = {"contents": [{"parts": [{"text": query}]}]}
     try:
         response = requests.post(url, headers=headers, json=payload)
         if response.ok:
@@ -206,14 +215,9 @@ def postmsg(access_token, recipient_id, message_to_be_sent):
         "Content-Type": "application/json"
     }
     json_body = {
-        "recipient": {
-            "id": recipient_id
-        },
-        "message": {
-            "text": message_to_be_sent
-        }
+        "recipient": {"id": recipient_id},
+        "message": {"text": message_to_be_sent}
     }
-
     response = requests.post(url, headers=headers, json=json_body)
     data = response.json()
     return data
@@ -222,12 +226,7 @@ def postmsg(access_token, recipient_id, message_to_be_sent):
 def sendreply(access_token, comment_id, message_to_be_sent):
     """Sends a reply to an Instagram comment."""
     url = f"https://graph.instagram.com/v22.0/{comment_id}/replies"
-
-    params = {
-        "message": message_to_be_sent,
-        "access_token": access_token
-    }
-
+    params = {"message": message_to_be_sent, "access_token": access_token}
     response = requests.post(url, params=params)
     data = response.json()
     return data
@@ -236,35 +235,19 @@ def sendreply(access_token, comment_id, message_to_be_sent):
 def parse_instagram_webhook(data):
     """
     Parse Instagram webhook events for both direct messages and comments.
-
-    Args:
-        data (dict): The full webhook payload received from Meta
-
-    Returns:
-        list: A list of parsed event dictionaries
     """
     results = []
-
     try:
-        # Extract timestamp from the wrapper data
         event_timestamp = data.get("timestamp")
-
-        # Handle different possible payload structures
         payload = data.get("payload", data) if isinstance(data, dict) else data
-
-        # Extract entries from payload
         entries = payload.get("entry", [])
-
-        logger.info(f"Number of entries found: {len(entries)}")
-
+        logger.info(f"WebHook Endpoint: Number of entries found: {len(entries)}")
         for entry in entries:
-            # Process Direct Messages
             messaging_events = entry.get("messaging", [])
             for messaging_event in messaging_events:
                 sender = messaging_event.get("sender", {})
                 recipient = messaging_event.get("recipient", {})
                 message = messaging_event.get("message", {})
-
                 if message:
                     message_event_details = {
                         "type": "direct_message",
@@ -277,8 +260,6 @@ def parse_instagram_webhook(data):
                         "is_echo": message.get("is_echo", False)
                     }
                     results.append(message_event_details)
-
-            # Process Comments
             changes = entry.get("changes", [])
             for change in changes:
                 if change.get("field") == "comments":
@@ -296,11 +277,9 @@ def parse_instagram_webhook(data):
                             "entry_time": entry.get("time")
                         }
                         results.append(comment_details)
-
     except Exception as e:
-        logger.error(f"Parsing error: {e}")
-        logger.error(f"Problematic payload: {json.dumps(data, indent=2)}")
-
+        logger.error(f"WebHook Endpoint: Parsing error: {e}")
+        logger.error(f"WebHook Endpoint: Problematic payload: {json.dumps(data, indent=2)}")
     return results
 
 
@@ -308,19 +287,14 @@ def analyze_sentiment(comment_text):
     """Analyzes sentiment of text using NLTK's VADER."""
     sia = SentimentIntensityAnalyzer()
     sentiment_scores = sia.polarity_scores(comment_text)
-
-    # Determine sentiment based on compound score
     if sentiment_scores['compound'] > 0.25:
         sentiment = "Positive"
     else:
-        sentiment = "Negative"  # Consider neutral as negative for default responses
-
+        sentiment = "Negative"
     return sentiment
 
 
-# Load events from file on startup
 load_events_from_file()
-
 
 @app.get("/ping")
 def ping():
@@ -348,19 +322,16 @@ async def verify_webhook_signature(request: Request, raw_body: bytes) -> bool:
     """Verify that the webhook request is from Meta."""
     signature = request.headers.get("X-Hub-Signature-256", "")
     if not signature or not signature.startswith("sha256="):
-        logger.error("Signature is missing or not properly formatted")
+        logger.error("WebHook Endpoint: Signature is missing or not properly formatted")
         return False
-
     expected_signature = hmac.new(
         APP_SECRET.encode('utf-8'),
         raw_body,
         hashlib.sha256
     ).hexdigest()
-
     if not hmac.compare_digest(signature[7:], expected_signature):
-        logger.error(f"Signature mismatch: {signature[7:]} != {expected_signature}")
+        logger.error(f"WebHook Endpoint: Signature mismatch: {signature[7:]} != {expected_signature}")
         return False
-
     return True
 
 
@@ -370,14 +341,11 @@ async def verify_webhook(
     hub_verify_token: str = Query(None, alias="hub.verify_token"),
     hub_challenge: str = Query(None, alias="hub.challenge")
 ):
-    """Verify webhook from Meta."""
-    logger.info(f"Received verification request: {hub_mode}, {hub_verify_token}")
-
+    logger.info(f"WebHook Endpoint: Received verification request: {hub_mode}, {hub_verify_token}")
     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
-        logger.info("Webhook verification successful")
+        logger.info("WebHook Endpoint: Webhook verification successful")
         return Response(content=hub_challenge, media_type="text/html")
-
-    logger.error("Webhook verification failed")
+    logger.error("WebHook Endpoint: Webhook verification failed")
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
@@ -385,85 +353,58 @@ async def verify_webhook(
 async def webhook(request: Request):
     """Handle incoming webhook events from Meta."""
     raw_body = await request.body()
-    logger.info(f"Received raw webhook payload: {raw_body.decode('utf-8')}")
-
+    logger.info(f"WebHook Endpoint: Received raw webhook payload: {raw_body.decode('utf-8')}")
     if not await verify_webhook_signature(request, raw_body):
         raise HTTPException(status_code=403, detail="Invalid signature")
-
     try:
         payload = json.loads(raw_body)
-        event_with_time = {
-            "timestamp": datetime.now().isoformat(),
-            "payload": payload
-        }
-
-        # Parse the webhook and get events
+        event_with_time = {"timestamp": datetime.now().isoformat(), "payload": payload}
         parsed_events = parse_instagram_webhook(event_with_time)
-        logger.info("Parsed Webhook Events:")
+        logger.info("WebHook Endpoint: Parsed Webhook Events:")
         for event in parsed_events:
             logger.info(json.dumps(event, indent=2))
-
-            # Handle different types of events
             if event["type"] == "direct_message" and event["is_echo"] == False:
                 conversation_id = str(event["sender_id"]) + "_" + str(event["recipient_id"])
-
                 if conversation_id not in message_queue:
-                    # New conversation
                     message_queue[conversation_id] = [event]
-                    delay = random.randint(1 * 60, 2 * 60)  # Initial delay (1-2 minutes)
+                    delay = random.randint(1 * 60, 2 * 60)
                     task = send_dm.apply_async(
-                        args=(conversation_id, message_queue.copy()),  # Pass conversation_id and snapshot
+                        args=(conversation_id, message_queue.copy()),
                         countdown=delay, expires=delay + 60
                     )
-                    conversation_task_schedules[conversation_id] = task.id  # Track scheduled task ID
-                    logger.info(f"Scheduled initial DM task for new conversation: {conversation_id}, task_id: {task.id}, delay: {delay}s")
-
+                    conversation_task_schedules[conversation_id] = task.id
+                    logger.info(f"WebHook Endpoint: Scheduled initial DM task for new conversation: {conversation_id}, task_id: {task.id}, delay: {delay}s")
                 else:
-                    # Existing conversation - add new message and re-schedule
                     message_queue[conversation_id].append(event)
-                    logger.info(f"Added message to existing conversation: {conversation_id}")
-
-                    # Re-schedule send_dm task with a shorter delay upon new message
+                    logger.info(f"WebHook Endpoint: Added message to existing conversation: {conversation_id}")
                     if conversation_id in conversation_task_schedules:
                         task_id_to_extend = conversation_task_schedules[conversation_id]
-                        celery.control.revoke(task_id_to_extend, terminate=False)  # Cancel existing task
-                        del conversation_task_schedules[conversation_id]  # Remove old task ID
-
-                        new_delay = 30  # Shorter delay for re-scheduling (e.g., 30 seconds)
+                        celery.control.revoke(task_id_to_extend, terminate=False)
+                        del conversation_task_schedules[conversation_id]
+                        new_delay = 30
                         new_task = send_dm.apply_async(
-                            args=(conversation_id, message_queue.copy()),  # Re-schedule with updated queue
+                            args=(conversation_id, message_queue.copy()),
                             countdown=new_delay, expires=new_delay + 60
                         )
-                        conversation_task_schedules[conversation_id] = new_task.id  # Track new task ID
-                        logger.info(f"Re-scheduled DM task for conversation: {conversation_id}, task_id: {new_task.id}, new delay: {new_delay}s (due to new message)")
-
-
+                        conversation_task_schedules[conversation_id] = new_task.id
+                        logger.info(f"WebHook Endpoint: Re-scheduled DM task for conversation: {conversation_id}, task_id: {new_task.id}, new delay: {new_delay}s")
             elif event["type"] == "comment" and event["from_id"] != account_id:
-                # Analyze sentiment of the comment
                 sentiment = analyze_sentiment(event["text"])
                 if sentiment == "Positive":
                     message_to_be_sent = default_comment_response_positive
                 else:
                     message_to_be_sent = default_comment_response_negative
-
-                # Schedule the reply task
-                delay = random.randint(1 * 60, 2 * 60)  # 10 to 25 minutes in seconds
+                delay = random.randint(1 * 60, 2 * 60)
                 send_delayed_reply.apply_async(
                     args=(access_token, event["comment_id"], message_to_be_sent),
                     countdown=delay, expires=delay + 60
                 )
-                logger.info(f"Scheduled reply task for comment {event['comment_id']} in {delay} seconds")
-
-        # Store event and notify clients
+                logger.info(f"WebHook Endpoint: Scheduled reply task for comment {event['comment_id']} in {delay} seconds")
         WEBHOOK_EVENTS.append(event_with_time)
         save_events_to_file()
-
-        # Notify connected SSE clients
         for client_queue in CLIENTS:
             await client_queue.put(event_with_time)
-
         return {"success": True, "parsed_events": parsed_events}
-
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
@@ -474,24 +415,25 @@ async def get_webhook_events():
     return {"events": list(WEBHOOK_EVENTS)}
 
 
+@app.get("/webhook_logs")
+def get_webhook_logs():
+    """Retrieve all stored webhook log entries."""
+    return {"webhook_logs": list(WEBHOOK_LOGS)}
+
+
 async def event_generator(request: Request):
     """Generate Server-Sent Events."""
     client_queue = asyncio.Queue()
     CLIENTS.append(client_queue)
-
     try:
-        # Send existing events
         for event in WEBHOOK_EVENTS:
             yield f"data: {json.dumps(event)}\n\n"
-
-        # Listen for new events
         while not await request.is_disconnected():
             try:
                 event = await asyncio.wait_for(client_queue.get(), timeout=30)
                 yield f"data: {json.dumps(event)}\n\n"
             except asyncio.TimeoutError:
                 yield ": keepalive\n\n"
-
     finally:
         CLIENTS.remove(client_queue)
 
@@ -502,10 +444,7 @@ async def events(request: Request):
     return EventSourceResponse(event_generator(request))
 
 
-# Serve static HTML
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-
 
 if __name__ == "__main__":
     import uvicorn

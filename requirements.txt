@@ -6,4 +6,4 @@ python-dotenv
 requests
 nltk
 celery[redis]
-redis[ssl]
+    

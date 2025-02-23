@@ -4,7 +4,7 @@ set -e
 pip install -r requirements.txt
 
 # Download the NLTK vader lexicon (if not already downloaded)
-python -c "import nltk; nltk.download('vader_lexicon')"
+python -c "import nltk; nltk.download(\"vader_lexicon\")"
 
 # Start the Celery worker in the background
 celery -A server.celery worker -l info &

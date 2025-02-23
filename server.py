@@ -68,9 +68,9 @@ default_comment_response_negative = "We are sorry to hear you're not satisfied. 
 # Save Webhook Events to JSON File
 WEBHOOK_FILE = "webhook_events.json"
 
-#test
-CELERY_BROKER_URL = "testappRitesh.redis.cache.windows.net:6380,password=qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=,ssl=True,abortConnect=False"
-CELERY_RESULT_BACKEND = "testappRitesh.redis.cache.windows.net:6380,password=qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=,ssl=True,abortConnect=False"
+CELERY_BROKER_URL = "redis://:qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0"
+CELERY_RESULT_BACKEND = "redis://:qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0"
+
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(
     task_serializer='json',

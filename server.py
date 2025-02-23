@@ -69,17 +69,8 @@ default_comment_response_negative = "We are sorry to hear you're not satisfied. 
 WEBHOOK_FILE = "webhook_events.json"
 
 
-CELERY_BROKER_URL = (
-    "rediss://red-cul4k23tq21c73bo2skg:"
-    ":nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379"
-    "?ssl_cert_reqs=CERT_NONE"
-)
-CELERY_RESULT_BACKEND = (
-    "rediss://red-cul4k23tq21c73bo2skg:"
-    ":nN1wjHHGVdxfuVLRVuWUrOYmBaakAf4d@oregon-keyvalue.render.com:6379"
-    "?ssl_cert_reqs=CERT_NONE"
-)
-
+CELERY_BROKER_URL = "testappRitesh.redis.cache.windows.net:6380,password=qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=,ssl=True,abortConnect=False"
+CELERY_RESULT_BACKEND ="testappRitesh.redis.cache.windows.net:6380,password=qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=,ssl=True,abortConnect=False"
 
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(

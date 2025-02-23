@@ -69,22 +69,10 @@ default_comment_response_negative = "We are sorry to hear you're not satisfied. 
 WEBHOOK_FILE = "webhook_events.json"
 
 # CELERY_BROKER_URL = "rediss://:qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
-# CELERY_RESULT_BACKEND = "rediss://:qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=@testappRitesh.redis.cache.windows.net:6380/0?ssl_cert_reqs=CERT_NONE"
+cel_url =  "redis://localhost:6379"
 
-CELERY_BROKER_URL = CELERY_BROKER_URL = {
-    'URL': 'rediss://testappRitesh.redis.cache.windows.net:6380/0',
-    'PASSWORD': 'qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=',
-    'SSL': True,
-    'SSL_CERT_REQS': None
-}
-CELERY_RESULT_BACKEND =CELERY_BROKER_URL = {
-    'URL': 'rediss://testappRitesh.redis.cache.windows.net:6380/0',
-    'PASSWORD': 'qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=',
-    'SSL': True,
-    'SSL_CERT_REQS': None
-}
 
-celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
+celery = Celery(__name__, cel_url)
 celery.conf.update(
     task_serializer='json',
     accept_content=['json'],

@@ -69,8 +69,8 @@ default_comment_response_negative = "We are sorry to hear you're not satisfied. 
 WEBHOOK_FILE = "webhook_events.json"
 
 #test
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")  # Use environment variable
-CELERY_RESULT_BACKEND = os.getenv("CELERY_BROKER_URL")
+CELERY_BROKER_URL = "testappRitesh.redis.cache.windows.net:6380,password=qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=,ssl=True,abortConnect=False"
+CELERY_RESULT_BACKEND = "testappRitesh.redis.cache.windows.net:6380,password=qnrmbhTrq4mWLPLMNldf8qdA7GFXPO5VOAzCaG7JTtE=,ssl=True,abortConnect=False"
 celery = Celery(__name__, broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
 celery.conf.update(
     task_serializer='json',

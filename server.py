@@ -66,7 +66,7 @@ default_dm_response_negative = "We are sorry to hear you're not satisfied. Pleas
 default_comment_response_positive = "Thanks for your kind words! We appreciate your support."
 default_comment_response_negative = "We are sorry to hear you're not satisfied. Please tell us more about this so that we can improve."
 # Save Webhook Events to JSON File
-WEBHOOK_FILE = "/tmp/webhook_events.json"
+WEBHOOK_FILE = "webhook_events.json"
 
 
 CELERY_BROKER_URL = (
